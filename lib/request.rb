@@ -1,15 +1,16 @@
 module TagExpressions
 	module Request
-
+		ESCAPE_SEQUENCE = "\r\n"
 		def self.put(data)
-			["PUT", data.to_json].join(" ")
+			["PUT", data.to_json].join(" ") + ESCAPE_SEQUENCE
 		end
 
 		def self.get(data)
-			["GET", data.to_json].join(" ")
+			["GET", data.to_json].join(" ") + ESCAPE_SEQUENCE
 		end
 
 		def self.handle_request(request)
+			p request
 			if request != nil
 				request_data = request.split(" ", 2)
 				request_type = request_data[0]

@@ -11,23 +11,30 @@ module TagExpressions
 			@@data ||= TagExpressions::Data::tags
 		end
 
+		def self.reset_server_data
+			@@data = TagExpressions::Data::tags
+		end
+
 		def self.add_data(tag, topic_id)
-			p data[tag]
+			# p data[tag]
 			data[tag].push(topic_id.to_i)
+			true
 		end
 
 		def self.handle_requests
 			Base::run_server do |session|
-				TagExpressions::Request::handle_request(session.gets) do |client_data, type|
-					puts "RECEIVED"
-
+				TagExpressions::Request::handle_request(session.gets) do |client_data, type|	
 					if type == "PUT"
 						topic = client_data.keys[0]
 						client_data[topic].each do |tag|
-							add_data(tag, topic)
+							if add_data(tag, topic)
+								session.puts ("Success")
+							else session.puts("Error")
+							end
 						end
 					elsif type == "GET"
-						p TagExpressions::evaluate(client_data[0])
+						result = TagExpressions::evaluate(client_data[0])
+						session.write(result)
 					end
 				end
 			end
@@ -41,12 +48,18 @@ module TagExpressions
 				@@server ||= TCPServer.new(HOST, PORT)
 			end
 
+			def self.reset_server
+				@@server_running = false
+				@@server = TCPServer.new(HOST, PORT)
+			end
+
 			def self.server_running
 				@@server_running ||= false
 			end
 
 			def self.kill_server
 				@@server.close
+				@@server_running = false
 				@@server = nil
 			end
 
@@ -56,7 +69,6 @@ module TagExpressions
 					@@server_running = true
 					# puts "SERVER SHOULD BE RUNNING"
 					Thread.start(server.accept) do |session|
-						# session = server.accept
 						yield session if block_given?
 						session.close
 					end

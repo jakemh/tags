@@ -23,19 +23,19 @@ module TagExpressions
 				list.each_with_index do |(tag, op), j|
 					list.delete_at(j) if op == "+" and j > 0
 				end
-				lists.push(Hash[list])
+				lists.push( list )
 			end
 		end
 
-		return {:tags => lists.map{|hash| hash.keys}, :operators_list => lists.map{|hash| hash.values}}
+		return { :tags => lists.map{ |e| e.map{ |tag, op| tag } }, :operators_list => lists.map{ |e| e.map{ |tag, op| op } } }
 	end
 
-	# check if id is "still alive", ie it hasn't been ruled out yet by a - or a &
-	# if the id is == to a reference at a - then it's being deducted out
-	# if the id is != to a referene at a &, then it's not intersecting
+	# check if id is "still alive", ie it hasn't been ruled out yet by "-"" or "&"
+	# if the id == reference at "-" then it's being deducted out (return false)
+	# if the id != eference at "&", then it's not intersecting (return false)
 	def self.check_condition(set, type, index, reference)
 		if type == "+"
-			return true
+			true
 		elsif type == "-"
 			set[index] != reference
 		elsif type == "&"
@@ -108,5 +108,5 @@ module TagExpressions
 end
 
 # example (should provide same result): 
-# p TagExpressions.evaluate("Aeroplane + Room - Album - Adult & Air").sort{|b,a| a <=> b}.uniq
-# p (((TagExpressions.data["Aeroplane"] + TagExpressions.data["Room"]) - TagExpressions.data["Album"]) - TagExpressions.data["Adult"] & TagExpressions.data["Air"]).sort!{|a,b| b<=>a}
+p TagExpressions.evaluate("Aeroplane + Room - Album - Adult & Air").sort{|b,a| a <=> b}.uniq
+p (((TagExpressions.data["Aeroplane"] + TagExpressions.data["Room"]) - TagExpressions.data["Album"]) - TagExpressions.data["Adult"] & TagExpressions.data["Air"]).sort!{|a,b| b<=>a}

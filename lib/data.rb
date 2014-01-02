@@ -2,8 +2,8 @@ require 'sqlite3'
 require 'active_record'
 
 ActiveRecord::Base.establish_connection(
-  :adapter => 'sqlite3',
-  :database => File.expand_path("" + "db/sqlite.db")
+	:adapter => 'sqlite3',
+	:database => File.expand_path("" + "db/sqlite.db")
 )
 
 module TagExpressions
@@ -16,8 +16,8 @@ module TagExpressions
 		def self.reset_tags
 			@@tags = nil
 		end
-		# run this when tags server is restarted to fetch 
-		# data from DB
+
+		# run this when tags server is restarted to fetch data from DB
 		def self.build_data_structure
 			tags = Hash.new { |hash, key| hash[key] = []}
 
@@ -54,7 +54,7 @@ module TagExpressions
 			def self.create_with_tags(tags)
 				topic = Topic.create()
 				topic.save
-				# p "ID: ", topic.id
+
 				tags.split(",").each do |tag|
 					Tag.create({:name => tag.strip, :topic_id => topic.id}).save
 				end

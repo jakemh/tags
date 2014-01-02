@@ -108,5 +108,5 @@ module TagExpressions
 end
 
 # example (should provide same result): 
-p TagExpressions.evaluate("Aeroplane + Room - Album - Adult & Air").sort{|b,a| a <=> b}.uniq
-p (((TagExpressions.data["Aeroplane"] + TagExpressions.data["Room"]) - TagExpressions.data["Album"]) - TagExpressions.data["Adult"] & TagExpressions.data["Air"]).sort!{|a,b| b<=>a}
+# p TagExpressions.evaluate("Aeroplane + Room - Album - Adult & Air").sort{|b,a| a <=> b}.uniq
+# p (((TagExpressions.data["Aeroplane"] + TagExpressions.data["Room"]) - TagExpressions.data["Album"]) - TagExpressions.data["Adult"] & TagExpressions.data["Air"]).sort!{|a,b| b<=>a}

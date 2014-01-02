@@ -68,44 +68,45 @@ module TagExpressions
 		return_list = []
 
 		# iterate sublists of operators (or tags)
-		operators_list.each_with_index do |operators, operators_index|
-			sets = Array.new(tags[operators_index].length){|set_index| data[tags[operators_index][set_index]]}
-			indices = Array.new(tags[operators_index].length){ |i| sets[i].length - 1}
+		(0...operators_list.length).each do | j |
+
+			# each set is an array of topics with each tag
+			# operators are set of operators that corresponds to current set 
+			# indices are current index of each set
+			sets = Array.new( tags[j].length ){ |set_index| data[tags[j][set_index]] }
+			operators = operators_list[j]
+			indices = Array.new( tags[j].length ){ |i| sets[i].length - 1 }
+			
+			# iterate from end to allow for ascending sort, resulting in cheap insertions (most often pushes)
 			i = sets[0].length - 1
 
 			# iterate until you accumulate your total OR you reach the end of your reference set 
-			# increment i each iteration
+			# decrement i each iteration
+			# reference is topic id that all sub iterators will compare to
+
 			while return_list.length < ACCUMULATE and (i >= 0)
 
 				reference = sets[0][i]
 
 				# for each increment along the reference set, we must advance all the sub sets
 				# advance until the current index is NOT greater than the reference 
-				sets.each_with_index do |set, j|
+				sets.each_with_index do |set, k|
 
-					if reference != nil and indices[j] >= 0 and sets[j][indices[j]] > reference
-						while (sets[j][indices[j]] != nil and sets[j][indices[j]] > reference)
-							indices[j] -= 1
-						end
+					while (sets[k][indices[k]] != nil and sets[k][indices[k]] > reference)
+						indices[k] -= 1
 					end
 				end
 
 				# after advancing the sub sets, we can check their conditions as described in check_condition
-				if condition(sets, indices, operators, reference) == true
-					if reference != nil
-						return_list.push(reference)
-					elsif sets[0][i] != nil 
-						return_list.push(sets[0][i]) # then all remaining from set_0 must be diffs
-					end
-				end
-				
+				# if all condition tests are passed, then push into array
+				return_list.push(reference) if condition(sets, indices, operators, reference)
 				i -= 1
 			end
 		end
-		return return_list.sort{|a,b| b<=>a}.uniq
+		return return_list.sort{|a,b| a <=> b}.uniq
 	end
 end
 
-# example: 
-# p TagExpressions.evaluate("Aeroplane + Room - Album - Adult & Air")
+# example (should provide same result): 
+# p TagExpressions.evaluate("Aeroplane + Room - Album - Adult & Air").sort{|b,a| a <=> b}.uniq
 # p (((TagExpressions.data["Aeroplane"] + TagExpressions.data["Room"]) - TagExpressions.data["Album"]) - TagExpressions.data["Adult"] & TagExpressions.data["Air"]).sort!{|a,b| b<=>a}

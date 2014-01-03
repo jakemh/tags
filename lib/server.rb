@@ -7,6 +7,10 @@ require 'json'
 
 module TagExpressions
 	module Server
+
+		GET_SUCCESS_MESSAGE = "SUCCESS"
+		GET_ERROR_MESSAGE = "ERROR"
+
 		def self.data
 			@@data ||= TagExpressions::Data::tags
 		end
@@ -16,9 +20,16 @@ module TagExpressions
 		end
 
 		def self.add_data(tag, topic_id)
-			# p data[tag]
-			data[tag].push(topic_id.to_i)
-			true
+			begin
+				if topic_id == nil or topic_id == ""
+					raise "Error"
+				end
+				data[tag].push(topic_id.to_i)
+				return true
+			rescue Exception
+				return false
+			end
+			
 		end
 
 		def self.handle_requests
@@ -28,8 +39,8 @@ module TagExpressions
 						topic = client_data.keys[0]
 						client_data[topic].each do |tag|
 							if add_data(tag, topic)
-								session.puts ("Success")
-							else session.puts("Error")
+								session.puts (GET_SUCCESS_MESSAGE)
+							else session.puts(GET_ERROR_MESSAGE)
 							end
 						end
 					elsif type == "GET"
@@ -45,12 +56,15 @@ module TagExpressions
 			HOST = 'localhost'
 
 			def self.server
-				@@server ||= TCPServer.new(HOST, PORT)
+				@@server ||= TCPServer.open(HOST, PORT)
 			end
 
 			def self.reset_server
 				@@server_running = false
-				@@server = TCPServer.new(HOST, PORT)
+				if @@server
+					@@server.close
+				end
+				@@server = TCPServer.open(HOST, PORT)
 			end
 
 			def self.server_running

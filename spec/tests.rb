@@ -1,7 +1,7 @@
 require_relative 'spec_helper'
 require_relative 'models'
 
-describe "Tag Evaluation" do
+describe "Left to Right Tag Evaluation" do
 	before(:each) do
 		require_relative 'models'
 		TagExpressions::Data::reset_tags
@@ -52,7 +52,7 @@ describe "Tag Evaluation" do
 		result.should_not include(topic3, topic4)
 	end
 
-	it 'should handle complex cases from left to right' do
+	it 'should handle complex cases' do
 		topic1 = Topic::create_with_tags("LUE, Programming")
 		topic2 = Topic::create_with_tags("Java, Programming")
 		topic3 = Topic::create_with_tags("Programming, LUE, Heartbreaks")
@@ -81,47 +81,84 @@ describe "Tag Server" do
 		TagExpressions::Data::Topic.delete_all
 		TagExpressions::Data::Tag.delete_all	
 		TagExpressions::Server::reset_server_data
-		TagExpressions::Server::Base::kill_server
 		TagExpressions::Server::Base::reset_server
-
-
 	end
 
-	it "should allow client connection" do
-		puts "allow connection"
-		 t = Thread.new do
-			TagExpressions::Server::Base::run_server
-		end
+	(0..5).each do |trial|
+		it "should allow client connection" do
+			 t = Thread.new do
+				TagExpressions::Server::Base::run_server
+			end
 
-	  	while (true)
-	  		sleep(0.2)
-	  		if TagExpressions::Server::Base::server_running
-	  			expect {TagExpressions::Client::send_request(nil, nil) }.to_not raise_error
-	  			break
-	  		end
-	  	end
+		  	while (true)
+		  		sleep(0.2)
+		  		if TagExpressions::Server::Base::server_running
+		  			expect {TagExpressions::Client::send_request(nil, nil) }.to_not raise_error
+		  			break
+		  		end
+		  	end
+		end
 	end
 
-	it "should allow client to receive data on GET request" do
-		puts "allow get"
+	(0..5).each do |trial|
+		it "should allow client to receive success message on PUT request" do
 
-		topic1 = Topic::create_with_tags("LUE")
-		topic2 = Topic::create_with_tags("Programming")
-		TagExpressions::Server::reset_server_data
+			Thread.new do
+				TagExpressions::Server::handle_requests
+			end
 
-		Thread.new do
-			TagExpressions::Server::handle_requests
+		  	while (true)
+		  	
+		  		if TagExpressions::Server::Base::server_running
+		  			TagExpressions::Client::send_request("PUT", {35 => [:LUE, :Heartbreaks]}) do |response|
+		  				response.should include TagExpressions::Server::GET_SUCCESS_MESSAGE
+		  			end
+		  			break
+		  		end
+		  	end
 		end
+	end
 
-	  	while (true)
-	  	
-	  		if TagExpressions::Server::Base::server_running
-	  			TagExpressions::Client::send_request("GET", ["LUE + Programming"]) do |data|
-	  				JSON.parse(data).should include(topic1, topic2)
-	  			end
-	  			break
-	  		end
-	  	end
+	(0..5).each do |trial|
+		it "should allow client to receive error message on PUT request if topic id is blank or nil" do
+
+			Thread.new do
+				TagExpressions::Server::handle_requests
+			end
+
+		  	while (true)
+		  	
+		  		if TagExpressions::Server::Base::server_running
+		  			TagExpressions::Client::send_request("PUT", {nil => [:LUE, :Heartbreaks]}) do |response|
+		  				response.should include TagExpressions::Server::GET_ERROR_MESSAGE
+		  			end
+		  			break
+		  		end
+		  	end
+		end
+	end
+
+	(0..5).each do |trial|
+		it "should allow client to receive correct data on GET request" do
+
+			topic1 = Topic::create_with_tags("LUE")
+			topic2 = Topic::create_with_tags("Programming")
+			TagExpressions::Server::reset_server_data
+
+			Thread.new do
+				TagExpressions::Server::handle_requests
+			end
+
+		  	while (true)
+		  	
+		  		if TagExpressions::Server::Base::server_running
+		  			TagExpressions::Client::send_request("GET", ["LUE + Programming"]) do |data|
+		  				JSON.parse(data).should include(topic1, topic2)
+		  			end
+		  			break
+		  		end
+		  	end
+		end
 	end
 	
 end

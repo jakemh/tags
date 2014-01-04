@@ -1,5 +1,5 @@
 require_relative 'request'
-require_relative 'data'
+require_relative 'data_main'
 require_relative 'tag_expressions'
 require 'socket'
 require 'json'
@@ -8,8 +8,8 @@ require 'json'
 module TagExpressions
 	module Server
 
-		GET_SUCCESS_MESSAGE = "SUCCESS"
-		GET_ERROR_MESSAGE = "ERROR"
+		SUCCESS_MESSAGE_PUT = "SUCCESS"
+		ERROR_MESSAGE_PUT = "ERROR"
 
 		def self.data
 			@@data ||= TagExpressions::Data::tags
@@ -39,8 +39,8 @@ module TagExpressions
 						topic = client_data.keys[0]
 						client_data[topic].each do |tag|
 							if add_data(tag, topic)
-								session.puts (GET_SUCCESS_MESSAGE)
-							else session.puts(GET_ERROR_MESSAGE)
+								session.puts (SUCCESS_MESSAGE_PUT)
+							else session.puts(ERROR_MESSAGE_PUT)
 							end
 						end
 					elsif type == "GET"

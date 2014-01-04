@@ -1,12 +1,10 @@
 require 'sqlite3'
 require 'active_record'
 
-ActiveRecord::Base.establish_connection(
-	:adapter => 'sqlite3',
-	:database => File.expand_path("" + "db/sqlite.db")
-)
 
 module TagExpressions
+	
+
 	module Data
 
 		def self.tags()
@@ -63,7 +61,31 @@ module TagExpressions
 		end
 
 		module DB
-			@@db ||= SQLite3::Database.new File.expand_path("" + "db/sqlite.db")
+			SQLITE_PATH = File.expand_path('../db/sqlite.db', File.dirname(__FILE__))
+
+			def self.sqlite_path
+				@@sqlite_path ||= SQLITE_PATH
+			end
+
+			def self.sqlite_path=(sqlite_path)
+				@@sqlite_path ||= sqlite_path
+
+			end
+
+
+			
+
+			def self.connect_db
+				ActiveRecord::Base.establish_connection(
+				:adapter => 'sqlite3',
+				:database => sqlite_path
+				)
+			end
+
+			def self.db
+				@@db ||= SQLite3::Database.new sqlite_path
+
+			end
 
 			def self.setup
 				build_tags_table
@@ -71,17 +93,17 @@ module TagExpressions
 			end
 
 			def self.clear_tables
-				@@db.execute("DROP TABLE tags") do |sql|
+				db.execute("DROP TABLE tags") do |sql|
 					puts "TAGS DROPPED"
 				end
 
-				@@db.execute("DROP TABLE TOPICS") do |sql|
+				db.execute("DROP TABLE TOPICS") do |sql|
 					puts "TOPICS DROPPED"
 				end
 			end
 
 			def self.build_tags_table
-				@@db.execute <<-SQL
+				db.execute <<-SQL
 				  CREATE TABLE IF NOT EXISTS tags (
 				    name VARCHAR(255),
 				    topic_id INT
@@ -90,7 +112,7 @@ module TagExpressions
 			end
 
 			def self.build_topics_table
-				@@db.execute <<-SQL
+				db.execute <<-SQL
 				  CREATE TABLE IF NOT EXISTS topics (
 				    title VARCHAR(255),
 				    message TEXT
@@ -100,18 +122,3 @@ module TagExpressions
 		end
 	end
 end
-
-# TagExpressions::Data::Topic.create_with_tags("TEST, TEST2, TEST3")
-# p TagExpressions::Data::DB::get_tags
-# p TagExpressions::Data::Tag.all.map{|ar| [ar.name, ar.topic_id]}
-# TagExpressions::Data::Tag.add(5000)
-
-# TagExpressions::Data::Tag.delete_all
-# TagExpressions::Data::Tag.add(10000)
-
-# TagExpressions::Data::Topic.add(100)
-# puts TagExpressions::Data::Topic.delete_all
-
-# TagExpressions::Data::DB::add_tags
-# TagExpressions::Data.tags
-

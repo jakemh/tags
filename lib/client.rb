@@ -38,5 +38,5 @@ end
 
 # created a new topic with tags 
 # TagExpressions::Client::send_request("PUT", {34 => [:LUE, :Heartbreaks]}) do |response|
-
+#	p response
 # end

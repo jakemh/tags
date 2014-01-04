@@ -55,54 +55,61 @@ module TagExpressions
                 return true
         end
 
+        # core logic to build id set
+        def self.build_id_list(tags, operators_list)
+
+                # each set is an array of topics with each tag
+                # operators are set of operators that corresponds to current set 
+                # indices are current index of each set
+                return_list = []
+                sets = Array.new( tags.length ){ |set_index| data[tags[set_index]] }
+                operators = operators_list
+                indices = Array.new( tags.length ){ |i| sets[i].length - 1 }
+                      
+                # iterate from end to allow for ascending sort, resulting in cheap insertions (most often pushes)
+                i = sets[0].length - 1
+
+                # iterate until you accumulate your total OR you reach the end of your reference set 
+                # decrement i each iteration
+                # reference is topic id that all sub iterators will compare to
+
+                while return_list.length < ACCUMULATE and (i >= 0)
+
+                reference = sets[0][i]
+
+                # for each increment along the reference set, we must advance all the sub sets
+                # advance until the current index is NOT greater than the reference 
+                sets.each_with_index do |set, k|
+
+                        while (sets[k][indices[k]] != nil and sets[k][indices[k]] > reference)
+                                indices[k] -= 1
+                        end
+                end
+
+                        # after advancing the sub sets, we can check their conditions as described in check_condition
+                        # if all condition tests are passed, then push into array
+                        return_list.push(reference) if condition(sets, indices, operators, reference)
+                        i -= 1
+                end  
+                return return_list
+        end
+
         # inputted string will be parsed into the following:
         # expression = {"LUE" => "+", "Programming" => "+", "Heartbreaks" => "&","Music" => "&","Current_Events" => "+" ,"Relationships" => "-"}
         # formatter will conver this into:
         # {:tags=>[["LUE", "Heartbreaks", "Music", "Relationships"], ["Programming", "Heartbreaks", "Music", "Relationships"], ["Current_Events", "Relationships"]], :operators_list=>[["+", "&", "&", "-"], ["+", "&", "&", "-"], ["+", "-"]]}
         # iterates arrays from end to allow for cheaper insertion 
         def self.evaluate(expression)
-
                 formatted_data = format(TagExpressions::Parse::tuples_from_string(expression))
-                tags = formatted_data[:tags]; operators_list = formatted_data[:operators_list]
-                
+                tags = formatted_data[:tags]
+                operators_list = formatted_data[:operators_list]
                 return_list = []
 
-                # iterate sublists of operators (or tags)
+                # iterate each union set as described in #format
                 (0...operators_list.length).each do | j |
-
-                        # each set is an array of topics with each tag
-                        # operators are set of operators that corresponds to current set 
-                        # indices are current index of each set
-                        sets = Array.new( tags[j].length ){ |set_index| data[tags[j][set_index]] }
-                        operators = operators_list[j]
-                        indices = Array.new( tags[j].length ){ |i| sets[i].length - 1 }
-                        
-                        # iterate from end to allow for ascending sort, resulting in cheap insertions (most often pushes)
-                        i = sets[0].length - 1
-
-                        # iterate until you accumulate your total OR you reach the end of your reference set 
-                        # decrement i each iteration
-                        # reference is topic id that all sub iterators will compare to
-
-                        while return_list.length < ACCUMULATE and (i >= 0)
-
-                                reference = sets[0][i]
-
-                                # for each increment along the reference set, we must advance all the sub sets
-                                # advance until the current index is NOT greater than the reference 
-                                sets.each_with_index do |set, k|
-
-                                        while (sets[k][indices[k]] != nil and sets[k][indices[k]] > reference)
-                                                indices[k] -= 1
-                                        end
-                                end
-
-                                # after advancing the sub sets, we can check their conditions as described in check_condition
-                                # if all condition tests are passed, then push into array
-                                return_list.push(reference) if condition(sets, indices, operators, reference)
-                                i -= 1
-                        end
+                        return_list.concat build_id_list(tags[j], operators_list[j])
                 end
+
                 return return_list.sort{|b,a| a <=> b}.uniq
         end
 end

@@ -75,21 +75,21 @@ module TagExpressions
 
                 while return_list.length < ACCUMULATE and (i >= 0)
 
-                reference = sets[0][i]
-
-                # for each increment along the reference set, we must advance all the sub sets
-                # advance until the current index is NOT greater than the reference 
-                sets.each_with_index do |set, k|
-
-                        while (sets[k][indices[k]] != nil and sets[k][indices[k]] > reference)
-                                indices[k] -= 1
+                        reference = sets[0][i]
+        
+                        # for each increment along the reference set, we must advance all the sub sets
+                        # advance until the current index is NOT greater than the reference 
+                        sets.each_with_index do |set, k|
+        
+                                while (sets[k][indices[k]] != nil and sets[k][indices[k]] > reference)
+                                        indices[k] -= 1
+                                end
                         end
-                end
-
-                        # after advancing the sub sets, we can check their conditions as described in check_condition
-                        # if all condition tests are passed, then push into array
-                        return_list.push(reference) if condition(sets, indices, operators, reference)
-                        i -= 1
+        
+                                # after advancing the sub sets, we can check their conditions as described in check_condition
+                                # if all condition tests are passed, then push into array
+                                return_list.push(reference) if condition(sets, indices, operators, reference)
+                                i -= 1
                 end  
                 return return_list
         end

@@ -14,7 +14,7 @@ module TagExpressions
         @options ||= {}
         @options[:accumulate] ||= ACCUMULATE
         @options[:skip] ||= SKIP
-        return @options
+        return @optionsa
     end
 
     def self.unions_at_index(sets, operators_list, indices)
@@ -35,7 +35,6 @@ module TagExpressions
     end
 
     def self.build_id_list(tags, operators)
-        p "OPTIONS: ", options
         sets = Array.new( tags.length ){ |tag_index| data[tags[tag_index]] }
         indices = Array.new( tags.length ){ |set_index| sets[set_index].length - 1 }
 
@@ -44,7 +43,7 @@ module TagExpressions
         count = 0
         # build return_list until return_list reaches the accumulation threshold
         # or all of the union sets have reached index 0
-        while return_list.length < (options[:accumulate] + options[:skip]) and not unions_empty(operators, indices)
+        while return_list.length <= (options[:accumulate] + options[:skip]) and not unions_empty(operators, indices)
             sets.each_with_index do |set, k|
 
                 if operators[k] == "+"
@@ -102,7 +101,7 @@ module TagExpressions
                             return_list.push(ref) if ref != nil
                         end
                     end
-                else return return_list
+                else break
                 end
             end
 

@@ -4,8 +4,12 @@ require_relative 'parse'
 module TagExpressions
     ACCUMULATE = 100
 
-    def self.data()
+    def self.data
         @@data = TagExpressions::Data::tags
+    end
+
+    def self.options
+        @options ||= {}
     end
 
     def self.unions_at_index(sets, operators_list, indices)
@@ -35,7 +39,7 @@ module TagExpressions
 
         # build return_list until return_list reaches the accumulation threshold
         # or all of the union sets have reached index 0
-        while return_list.uniq.length <= ACCUMULATE and not unions_empty(operators, indices)
+        while return_list.length <= ACCUMULATE and not unions_empty(operators, indices)
 
             sets.each_with_index do |set, k|
 
@@ -87,8 +91,10 @@ module TagExpressions
             # at end of each loop, push candidate into return_list
             # candidate will be nil if it was killed by a deductive operator
             candidate_list.each do |ref|
-                if return_list.uniq.length < ACCUMULATE
-                    return_list.push(ref) if ref != nil
+                if return_list.length < ACCUMULATE
+                    if return_list[-1] != ref or options.delete(:include_duplicates)
+                        return_list.push(ref) if ref != nil 
+                    end
                 else return return_list
                 end
             end
@@ -100,12 +106,7 @@ module TagExpressions
     end
   
     def self.evaluate(expression)
-        parsed = TagExpressions::Parse::tuples_from_string(expression)     
-            build_id_list(Hash[parsed].keys, Hash[parsed].values).uniq 
-    end
+        parsed = Hash[TagExpressions::Parse::tuples_from_string(expression)]     
+            build_id_list(parsed.keys, parsed.values)    
+        end
 end
-
-
-# example (should provide same result): 
-# p TagExpressions.evaluate("Aeroplane + Room - Album - Adult & Air").uniq
-# p (((TagExpressions.data["Aeroplane"] + TagExpressions.data["Room"]) - TagExpressions.data["Album"]) - TagExpressions.data["Adult"] & TagExpressions.data["Air"]).sort!{|a,b| b<=>a}

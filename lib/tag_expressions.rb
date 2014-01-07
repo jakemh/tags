@@ -2,118 +2,110 @@ require_relative 'data_main'
 require_relative 'parse'
 
 module TagExpressions
-        ACCUMULATE = 100
+    ACCUMULATE = 100
 
-        def self.data()
-                @@data = TagExpressions::Data::tags
+    def self.data()
+        @@data = TagExpressions::Data::tags
+    end
+
+    def self.unions_at_index(sets, operators_list, indices)
+        array = []
+        sets.each_with_index do |set, j|
+            if  operators_list[j] == "+"  and indices[j] >= 0
+                array.push(set[indices[j]])
+            end
         end
+        return array
+    end
+    
+    def self.unions_empty(operators, indices)
+        operators.each_with_index do |op, j|
+            return false if op == "+" and indices[j] >= 0
+        end
+        return true
+    end
 
-        # convert hash into sub lists of operators and tags
-        # each set is independent of other unions, ie unions are handled independently
-        # eg LUE + Programming & Heartbreaks & Music + Current_Events - Relationships
-        # will break it into the following lists:
-        # LUE & Heartbreaks & Music - Relationships
-        # Programming & Heartbreaks & Music - Relationships
-        # Current_Events - Relationships
-        def self.format(expression)
-                lists = []
-                expression.each_with_index do |(k,v), i|
-                        if v == "+"
-                                list = expression.to_a[i..-1]
-                                list.each_with_index do |(tag, op), j|
-                                        list.delete_at(j) if op == "+" and j > 0
-                                end
-                                lists.push( list )
+    def self.build_id_list(tags, operators)
+
+        sets = Array.new( tags.length ){ |tag_index| data[tags[tag_index]] }
+        indices = Array.new( tags.length ){ |set_index| sets[set_index].length - 1 }
+
+        candidate_list = []
+        return_list = []
+
+        # build return_list until return_list reaches the accumulation threshold
+        # or all of the union sets have reached index 0
+        while return_list.uniq.length <= ACCUMULATE and not unions_empty(operators, indices)
+
+            sets.each_with_index do |set, k|
+
+                if operators[k] == "+"
+
+                    ### must ensure sorted order is maintained; otherwise, results may be wrong
+                    # - find the maximum union size at each cursor; this is the current union reference
+                    # - if set value at current index is the union set value, then push into candidate list and advance
+                    # - decrement cursor after each push into candidate list
+                    # loop while max_union is not nil; ie all of the unions have not reached index 0
+                    # break when current value (set[indices[k]]) exceeds max_union or an index reaches 0
+                    while max_union = unions_at_index(sets, operators, indices).max
+                        if set[indices[k]] == max_union 
+                            candidate_list << set[indices[k]]
+                            indices[k] -= 1 
                         end
-                end
 
-                return { :tags => lists.map{ |e| e.map{ |tag, op| tag } }, :operators_list => lists.map{ |e| e.map{ |tag, op| op } } }
-        end
+                        break  if set[indices[k]] < max_union or indices[k] <= 0
 
-        # check if id is "still alive", ie it hasn't been ruled out yet by "-"" or "&"
-        # if the id == reference at "-" then it's being deducted out (return false)
-        # if the id != eference at "&", then it's not intersecting (return false)
-        def self.check_condition(set, type, index, reference)
-                if type == "+"
-                        true
-                elsif type == "-"
-                        set[index] != reference
-                elsif type == "&"
-                        set[index] == reference
-                end
-        end
+                    end
+                else # deductive operators; operator is either "-" or "&"
 
-        # if the condition is true, keeping going, otherwise return false 
-        def self.condition(sets, indices, operators, reference)
-                operators.each_with_index do |type, i|
-                        if check_condition(sets[i], type, indices[i], reference ) == true
-                                next
-                        else return false
+                    # perform task for each candidate in candidate list
+                    candidate_list.each_with_index do |ref, i|
+                        backup_to = set.length - 1
+                        
+                        # candidate list serves as reference points for the deductive operators 
+                        # advance set until it is not greater than the reference
+                        while (ref and set[indices[k]] and set[indices[k]] > ref)
+                            backup_to = indices[k] if set[indices[k]] == candidate_list.compact.max
+                            indices[k] -= 1
                         end
-                end
 
-                return true
-        end
-
-        # core logic to build id set
-        def self.build_id_list(tags, operators_list)
-
-                # each set is an array of topics with each tag
-                # operators are set of operators that corresponds to current set 
-                # indices are current index of each set
-                return_list = []
-                sets = Array.new( tags.length ){ |set_index| data[tags[set_index]] }
-                operators = operators_list
-                indices = Array.new( tags.length ){ |i| sets[i].length - 1 }
-                      
-                # iterate from end to allow for ascending sort, resulting in cheap insertions (most often pushes)
-                i = sets[0].length - 1
-
-                # iterate until you accumulate your total OR you reach the end of your reference set 
-                # decrement i each iteration
-                # reference is topic id that all sub iterators will compare to
-
-                while return_list.length < ACCUMULATE and (i >= 0)
-
-                reference = sets[0][i]
-
-                # for each increment along the reference set, we must advance all the sub sets
-                # advance until the current index is NOT greater than the reference 
-                sets.each_with_index do |set, k|
-
-                        while (sets[k][indices[k]] != nil and sets[k][indices[k]] > reference)
-                                indices[k] -= 1
+                        # "-" set kills candidate if it is equal to the candidate
+                        # "&" kills candidate if it is NOT equal to the candidate
+                        if operators[k] == "-"
+                            candidate_list[i] = nil if set[indices[k]] == candidate_list[i]
+                        elsif operators[k] == "&"
+                            candidate_list[i] = nil if set[indices[k]] != candidate_list[i]
                         end
+
+                        # after each evaluation of a candidate, deductive set index must be reset in order to evaluate
+                        # the next value in the candidate list. this could probably be done better
+                        indices[k] = backup_to 
+                    end
                 end
+            end
 
-                        # after advancing the sub sets, we can check their conditions as described in check_condition
-                        # if all condition tests are passed, then push into array
-                        return_list.push(reference) if condition(sets, indices, operators, reference)
-                        i -= 1
-                end  
-                return return_list
-        end
-
-        # inputted string will be parsed into the following:
-        # expression = {"LUE" => "+", "Programming" => "+", "Heartbreaks" => "&","Music" => "&","Current_Events" => "+" ,"Relationships" => "-"}
-        # formatter will conver this into:
-        # {:tags=>[["LUE", "Heartbreaks", "Music", "Relationships"], ["Programming", "Heartbreaks", "Music", "Relationships"], ["Current_Events", "Relationships"]], :operators_list=>[["+", "&", "&", "-"], ["+", "&", "&", "-"], ["+", "-"]]}
-        # iterates arrays from end to allow for cheaper insertion 
-        def self.evaluate(expression)
-                formatted_data = format(TagExpressions::Parse::tuples_from_string(expression))
-                tags = formatted_data[:tags]
-                operators_list = formatted_data[:operators_list]
-                return_list = []
-
-                # iterate each union set as described in #format
-                (0...operators_list.length).each do | j |
-                        return_list.concat build_id_list(tags[j], operators_list[j])
+            # at end of each loop, push candidate into return_list
+            # candidate will be nil if it was killed by a deductive operator
+            candidate_list.each do |ref|
+                if return_list.uniq.length < ACCUMULATE
+                    return_list.push(ref) if ref != nil
+                else return return_list
                 end
+            end
 
-                return return_list.sort{|b,a| a <=> b}.uniq
-        end
+            candidate_list = []
+
+        end 
+        return return_list 
+    end
+  
+    def self.evaluate(expression)
+        parsed = TagExpressions::Parse::tuples_from_string(expression)     
+            build_id_list(Hash[parsed].keys, Hash[parsed].values).uniq 
+    end
 end
 
+
 # example (should provide same result): 
-# p TagExpressions.evaluate("Aeroplane + Room - Album - Adult & Air").sort{|b,a| a <=> b}.uniq
+# p TagExpressions.evaluate("Aeroplane + Room - Album - Adult & Air").uniq
 # p (((TagExpressions.data["Aeroplane"] + TagExpressions.data["Room"]) - TagExpressions.data["Album"]) - TagExpressions.data["Adult"] & TagExpressions.data["Air"]).sort!{|a,b| b<=>a}

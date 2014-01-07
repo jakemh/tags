@@ -14,7 +14,7 @@ module TagExpressions
         @options ||= {}
         @options[:accumulate] ||= ACCUMULATE
         @options[:skip] ||= SKIP
-        return @optionsa
+        return @options
     end
 
     def self.unions_at_index(sets, operators_list, indices)

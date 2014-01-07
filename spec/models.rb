@@ -10,8 +10,8 @@ require [path, "server"].join("/")
 require [path, "client"].join("/")
 module Expressions
 	
-	def self.evaluate(expression)
-		TagExpressions::evaluate(expression)
+	def self.evaluate(expression, options = {})
+		TagExpressions::evaluate(expression, options)
 	end
 	
 end

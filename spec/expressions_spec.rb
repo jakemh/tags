@@ -1,7 +1,7 @@
 require_relative 'spec_helper'
 require_relative 'models'
 
-describe "Left to Right Tag Evaluation" do
+describe "General Left to Right Tag Evaluation" do
 	
 	before(:each) do
 		TagExpressions::Data::reset_tags
@@ -66,7 +66,37 @@ describe "Left to Right Tag Evaluation" do
 
 		
 		result = Expressions::evaluate("LUE + Java - Current_Events & Programming + Ruby & Heartbreaks - Sports")
-		result.should include(topic3, topic4, topic9)
-		result.should_not include(topic1, topic2, topic5, topic6, topic7, topic8, topic10)
+		result.should == [topic9, topic4, topic3]
+	end
+	it 'should be able to restrict accumulation' do
+		topic1 = Topic::create_with_tags("Programming")
+		topic2 = Topic::create_with_tags("Programming")
+		topic3 = Topic::create_with_tags("Programming")
+		topic4 = Topic::create_with_tags("Programming")
+		topic5 = Topic::create_with_tags("Movies")
+		topic6 = Topic::create_with_tags("Movies")
+		topic7 = Topic::create_with_tags("Movies")
+
+		options = {:accumulate => 5}
+		result = Expressions::evaluate("Programming + Movies", options)
+		result.should_not == [topic7, topic6, topic5, topic4, topic3, topic2, topic1]
+		result.should == [topic7, topic6, topic5, topic4, topic3]
+
+	end
+
+	it 'should be able to skip results' do
+		topic1 = Topic::create_with_tags("LUE")
+		topic2 = Topic::create_with_tags("Programming")
+		topic3 = Topic::create_with_tags("Java")
+		topic4 = Topic::create_with_tags("Current_Events")
+		topic5 = Topic::create_with_tags("Ruby")
+		topic6 = Topic::create_with_tags("Movies")
+		topic7 = Topic::create_with_tags("Pets")
+		
+		options = {:skip => 2}
+		result = Expressions::evaluate("LUE + Programming + Java + Current_Events + Ruby + Movies + Pets", options)
+		result.should_not == [topic7, topic6, topic5, topic4, topic3, topic2, topic1]
+		result.should == [topic5, topic4, topic3, topic2, topic1]
+
 	end
 end

@@ -44,7 +44,7 @@ module TagExpressions
         count = 0
         # build return_list until return_list reaches the accumulation threshold
         # or all of the union sets have reached index 0
-        while return_list.length <= (options[:accumulate] + options[:skip]) and not unions_empty(operators, indices)
+        while return_list.length < (options[:accumulate] + options[:skip]) and not unions_empty(operators, indices)
             sets.each_with_index do |set, k|
 
                 if operators[k] == "+"

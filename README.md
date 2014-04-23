@@ -1,6 +1,6 @@
 tags
 ====
-tags attempts to efficiently evaluate tag expressions using sorted lists stored in server memory. Based on the work of legendary engineer, hacker, facebook employee, mentor and friend, Marcel G. Laverdet. 
+tags attempts to efficiently evaluate tag expressions using sorted lists stored in server memory. Speed of evaluation is independent of the number of tags in the database. Based on the work of legendary engineer Marcel G. Laverdet. Both left to right evaluation and order of operations with sub-expressions are supported.
 
 ###Example:
 
@@ -8,17 +8,16 @@ tags attempts to efficiently evaluate tag expressions using sorted lists stored 
 
 ```ruby
 # send an expression and print resulting topic ids
-TagExpressions::Client::send_request("GET", ["LUE + Current_Events & Programming"]) do |response|
+TagExpressions::Client::send_request("GET", ["Sports + Current_Events & Programming"]) do |response|
   p JSON.parse(response) # => [8, 7, 4, 1]
 end
 
 # after creating topic with id 34, topic with tags is added to server and response message is printed
-TagExpressions::Client::send_request("PUT", {34 => [:LUE, :Programming]}) do |response|
+TagExpressions::Client::send_request("PUT", {34 => [:Sports, :Programming]}) do |response|
   p response # => "Success\nSuccess"
 end
 ```
 
+#TODO
 
-####TODO:
-
-Currently, tags only supports left to right evaluation. eg `"LUE  - Current_Events & Programming - Java"` should be evaluated as `"(LUE - Current_Events) & (Programming - Java)"` but is actually evaluated as `"((LUE  - Current_Events) & Programming) - Java"`. Ideally, both methods would be available to the user. 
+improve efficiency of subqueries and distribute as ruby gem. 

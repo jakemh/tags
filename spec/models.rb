@@ -9,15 +9,15 @@ require [path, "tag_expressions"].join("/")
 require [path, "server"].join("/")
 require [path, "client"].join("/")
 module Expressions
-	
-	def self.evaluate(expression, options = {})
-		TagExpressions::evaluate(expression, options)
-	end
-	
+
+  def self.evaluate(expression, options = {})
+    TagExpressions::evaluate(expression, options)
+  end
+
 end
 
 module Topic
-	def self.create_with_tags(tags)
-		TagExpressions::Data::Topic.create_with_tags(tags).id
-	end
+  def self.create_with_tags(tags)
+    TagExpressions::Data::Topic.create_with_tags(tags).id
+  end
 end
